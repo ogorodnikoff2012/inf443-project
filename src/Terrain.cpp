@@ -10,11 +10,11 @@ vcl::mesh_drawable BuildCarrot() {
   vcl::mesh body =
       vcl::mesh_primitive_cone(0.1f, 0.3f, {0, 0, 0.1f}, {0, 0, -1}, true);
   body.color.fill({0.95f, 0.55f, 0.15f});
-  vcl::mesh green_shit =
+  vcl::mesh green_part =
       vcl::mesh_primitive_cone(0.05f, 0.1f, {0, 0, 0.2f}, {0, 0, -1}, true);
-  green_shit.color.fill({0, 0.6f, 0});
+  green_part.color.fill({0, 0.6f, 0});
 
-  body.push_back(green_shit);
+  body.push_back(green_part);
   return vcl::mesh_drawable(body);
 }
 
@@ -36,9 +36,10 @@ TerrainChunk::TerrainChunk(float x, float y, float width, float height,
   BuildWater();
 
   std::uniform_real_distribution<float> distr(0, 1);
-  carrot_x_         = x_ + width_ * distr(shared_->rnd);
-  carrot_y_         = y_ + height_ * distr(shared_->rnd);
-  carrot_collected_ = distr(shared_->rnd) < 0.25;
+  carrot_x_         = x_ + width_ * (distr(shared_->rnd) * 0.8 + 0.1);
+  carrot_y_         = y_ + height_ * (distr(shared_->rnd) * 0.8 + 0.1);
+  float carrot_z    = Z(carrot_x_, carrot_y_);
+  carrot_collected_ = carrot_z <= 2.2 || (distr(shared_->rnd) < 0.25);
 
   // mesh_.shading.color = {0.6f, 0.85f, 0.5f}; // Make the grass more green :)
   //  mesh_.shading.phong.specular = 0.0f; // non-specular terrain material
@@ -139,7 +140,7 @@ void TerrainChunk::InteractWith(Character& character) {
   float dx = carrot_x_ - x;
   float dy = carrot_y_ - y;
 
-  if (dx * dx + dy * dy < 0.1) {
+  if (dx * dx + dy * dy < 0.2) {
     carrot_collected_ = true;
     character.OnCarrotCollect();
   }

@@ -4,6 +4,7 @@
 
 #include "GameContext.h"
 #include "Game.h"
+#include "KroshLoader.h"
 
 #include <iostream>
 
@@ -17,8 +18,7 @@ GameContext::GameContext()
     : last_update_(std::chrono::system_clock::now())
     , terrain_(16, 4, 4)
     , character_({0, 0, 0}, vcl::rotation(),
-                 vcl::mesh_drawable(
-                     vcl::mesh_primitive_cylinder(0.2, {0, 0, 0}, {1, 0, 0}))) {
+                 KroshLoader("assets/krosh/").Load()) {
   std::cout << "Create GameContext()" << std::endl;
   InitDefaultParams();
 }
@@ -74,11 +74,11 @@ void GameContext::Update() {
   character_.Position().z = terrain_.GetPhysicalHeight(character_.Position().x,
                                                        character_.Position().y);
 
+  character_.UpdateJumping(dt, run_speed_ == 0);
+
   terrain_.InteractWith(character_);
 
   auto& scene = Game::GetInstance()->GetScene();
   character_.UpdateCamera(scene.camera, terrain_);
 }
-
-void GameContext::StartJumping() {}
-void GameContext::StopJumping() {}
+void GameContext::SwitchView() { character_.SwitchView(); }

@@ -40,9 +40,8 @@ void GameKeyCallback(GLFWwindow* window, int key, int scancode, int action,
     case GLFW_KEY_RIGHT:
       ctx->TurnRight();
       break;
-    case GLFW_KEY_SPACE:
-      ctx->StartJumping();
-      break;
+    case GLFW_KEY_V:
+      ctx->SwitchView();
     }
   } else if (action == GLFW_RELEASE) {
     switch (key) {
@@ -53,9 +52,6 @@ void GameKeyCallback(GLFWwindow* window, int key, int scancode, int action,
     case GLFW_KEY_LEFT:
     case GLFW_KEY_RIGHT:
       ctx->StopTurn();
-      break;
-    case GLFW_KEY_SPACE:
-      ctx->StopJumping();
       break;
     }
   }

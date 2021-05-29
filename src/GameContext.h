@@ -31,8 +31,7 @@ class GameContext : public SceneContext {
   void TurnRight();
   void StopTurn();
 
-  void StartJumping();
-  void StopJumping();
+  void SwitchView();
 
  private:
   vcl::camera_around_center
