@@ -1,0 +1,3 @@
+[submodule "lib/inf443-vcl"]
+	path = lib/inf443-vcl
+	url = https://github.com/drohmer/inf443-vcl.git
