@@ -18,6 +18,7 @@ struct TerrainSharedResources {
   const vcl::image_raw im_grass;
   vcl::mesh_drawable carrot;
   vcl::hierarchy_mesh_drawable tree;
+  vcl::hierarchy_mesh_drawable mushroom;
   vcl::mesh_drawable water;
   double wave_phase;
   std::default_random_engine rnd;
@@ -51,6 +52,12 @@ class TerrainChunk {
       shared_->tree.update_local_to_global_coordinates();
       vcl::draw(shared_->tree, scene);
     }
+    if (object_type_ == EObjectMushroom) {
+      shared_->mushroom["trunk"].transform.translate = {object_x_, object_y_,
+                                                    Z(object_x_, object_y_)};
+      shared_->mushroom.update_local_to_global_coordinates();
+      vcl::draw(shared_->mushroom, scene);
+    }
   }
 
   template <class SCENE>
@@ -67,7 +74,7 @@ class TerrainChunk {
 
   float object_x_;
   float object_y_;
-  enum EObjectType { EObjectCarrot, EObjectTree, EObjectNone };
+  enum EObjectType { EObjectCarrot, EObjectTree, EObjectMushroom, EObjectNone };
   EObjectType object_type_;
 
   vcl::mesh_drawable mesh_;
