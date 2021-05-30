@@ -17,6 +17,35 @@ vcl::mesh_drawable BuildCarrot() {
   body.push_back(green_part);
   return vcl::mesh_drawable(body);
 }
+}
+
+namespace {
+vcl::hierarchy_mesh_drawable BuildTree() {
+  vcl::mesh trunk =
+      vcl::mesh_primitive_cylinder(0.1f, {0, 0, 0.5f}, {0, 0, -1});
+  vcl::mesh_drawable trunk_drawable(trunk);
+  trunk_drawable.texture = opengl_texture_to_gpu(vcl::image_load_png("assets/trunk.png"),
+                                                 GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
+  trunk_drawable.shading.phong.specular = 0.0f;
+
+  vcl::mesh bottom_layer =
+      vcl::mesh_primitive_cone(0.5f, 0.5f, {0, 0, 0.45f}, {0, 0, 1}, true);
+  vcl::mesh middle_layer =
+      vcl::mesh_primitive_cone(0.5f, 0.5f, {0, 0, 0.8f}, {0, 0, 1}, true);
+  vcl::mesh top_layer =
+      vcl::mesh_primitive_cone(0.5f, 0.5f, {0, 0, 1.15f}, {0, 0, 1}, true);
+
+  bottom_layer.push_back(middle_layer);
+  bottom_layer.push_back(top_layer);
+  vcl::mesh_drawable green_part(bottom_layer);
+  green_part.texture = opengl_texture_to_gpu(vcl::image_load_png("assets/tree_texture.png"),
+                                             GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
+  vcl::hierarchy_mesh_drawable hierarchy;
+  hierarchy.add(trunk_drawable, "trunk");
+  hierarchy.add(green_part, "green_part", "trunk");
+  hierarchy["trunk"].transform.scale = 2;
+  return hierarchy;
+}
 
 } // namespace
 
@@ -36,10 +65,17 @@ TerrainChunk::TerrainChunk(float x, float y, float width, float height,
   BuildWater();
 
   std::uniform_real_distribution<float> distr(0, 1);
-  carrot_x_         = x_ + width_ * (distr(shared_->rnd) * 0.8 + 0.1);
-  carrot_y_         = y_ + height_ * (distr(shared_->rnd) * 0.8 + 0.1);
-  float carrot_z    = Z(carrot_x_, carrot_y_);
-  carrot_collected_ = carrot_z <= 2.2 || (distr(shared_->rnd) < 0.25);
+  object_x_         = x_ + width_ * (distr(shared_->rnd) * 0.8 + 0.1);
+  object_y_         = y_ + height_ * (distr(shared_->rnd) * 0.8 + 0.1);
+  float object_z    = Z(object_x_, object_y_);
+  float rand_num = distr(shared_->rnd);
+  if (object_z > 2.2 && rand_num > 0.5) {
+    object_type_ = EObjectTree;
+  } else if (object_z > 2.2 && (rand_num >= 0.25 || rand_num < 0.5)) {
+    object_type_ = EObjectCarrot;
+  } else {
+      object_type_ = EObjectNone;
+  }
 
   // mesh_.shading.color = {0.6f, 0.85f, 0.5f}; // Make the grass more green :)
   //  mesh_.shading.phong.specular = 0.0f; // non-specular terrain material
@@ -131,17 +167,17 @@ float TerrainChunk::PhysicalZ(float x, float y) const {
   return z;
 }
 void TerrainChunk::InteractWith(Character& character) {
-  if (carrot_collected_) {
+  if (object_type_ != EObjectCarrot) {
     return;
   }
   float x = character.Position().x;
   float y = character.Position().y;
 
-  float dx = carrot_x_ - x;
-  float dy = carrot_y_ - y;
+  float dx = object_x_ - x;
+  float dy = object_y_ - y;
 
   if (dx * dx + dy * dy < 0.2) {
-    carrot_collected_ = true;
+    object_type_ = EObjectNone;
     character.OnCarrotCollect();
   }
 }
@@ -189,7 +225,8 @@ Terrain::Terrain(float view_radius, float chunk_width, float chunk_height)
     : view_radius_sqr_(view_radius * view_radius)
     , chunk_width_(chunk_width)
     , chunk_height_(chunk_height)
-    , shared_{vcl::image_load_png("assets/texture_grass.png"), BuildCarrot(),
+    , shared_{vcl::image_load_png("assets/texture_grass.png"),
+              BuildCarrot(), BuildTree(),
               std::default_random_engine()} {}
 
 TerrainChunk* Terrain::GetChunk(const ChunkIndex& index) {
