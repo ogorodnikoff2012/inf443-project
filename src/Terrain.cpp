@@ -3,51 +3,8 @@
 //
 
 #include "Terrain.h"
+#include "Models.h"
 #include <vcl/shape/noise/noise.hpp>
-
-namespace {
-vcl::mesh_drawable BuildCarrot() {
-  vcl::mesh body =
-      vcl::mesh_primitive_cone(0.1f, 0.3f, {0, 0, 0.1f}, {0, 0, -1}, true);
-  body.color.fill({0.95f, 0.55f, 0.15f});
-  vcl::mesh green_part =
-      vcl::mesh_primitive_cone(0.05f, 0.1f, {0, 0, 0.2f}, {0, 0, -1}, true);
-  green_part.color.fill({0, 0.6f, 0});
-
-  body.push_back(green_part);
-  return vcl::mesh_drawable(body);
-}
-}
-
-namespace {
-vcl::hierarchy_mesh_drawable BuildTree() {
-  vcl::mesh trunk =
-      vcl::mesh_primitive_cylinder(0.1f, {0, 0, 0.5f}, {0, 0, -1});
-  vcl::mesh_drawable trunk_drawable(trunk);
-  trunk_drawable.texture = opengl_texture_to_gpu(vcl::image_load_png("assets/trunk.png"),
-                                                 GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
-  trunk_drawable.shading.phong.specular = 0.0f;
-
-  vcl::mesh bottom_layer =
-      vcl::mesh_primitive_cone(0.5f, 0.5f, {0, 0, 0.45f}, {0, 0, 1}, true);
-  vcl::mesh middle_layer =
-      vcl::mesh_primitive_cone(0.5f, 0.5f, {0, 0, 0.8f}, {0, 0, 1}, true);
-  vcl::mesh top_layer =
-      vcl::mesh_primitive_cone(0.5f, 0.5f, {0, 0, 1.15f}, {0, 0, 1}, true);
-
-  bottom_layer.push_back(middle_layer);
-  bottom_layer.push_back(top_layer);
-  vcl::mesh_drawable green_part(bottom_layer);
-  green_part.texture = opengl_texture_to_gpu(vcl::image_load_png("assets/tree_texture.png"),
-                                             GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
-  vcl::hierarchy_mesh_drawable hierarchy;
-  hierarchy.add(trunk_drawable, "trunk");
-  hierarchy.add(green_part, "green_part", "trunk");
-  hierarchy["trunk"].transform.scale = 2;
-  return hierarchy;
-}
-
-} // namespace
 
 float TerrainChunk::X() const { return x_; }
 float TerrainChunk::Y() const { return y_; }
@@ -64,17 +21,19 @@ TerrainChunk::TerrainChunk(float x, float y, float width, float height,
   BuildMesh();
   BuildWater();
 
-  std::uniform_real_distribution<float> distr(0, 1);
+  std::uniform_real_distribution<float> distr(0., 1.);
   object_x_         = x_ + width_ * (distr(shared_->rnd) * 0.8 + 0.1);
   object_y_         = y_ + height_ * (distr(shared_->rnd) * 0.8 + 0.1);
   float object_z    = Z(object_x_, object_y_);
   float rand_num = distr(shared_->rnd);
-  if (object_z > 2.2 && rand_num > 0.5) {
+  if (object_z > 2.2 && rand_num < 0.1) {
+    object_type_ = EObjectMushroom;
+  } else if (object_z > 2.2 && (rand_num >= 0.1 && rand_num < 0.6)) {
     object_type_ = EObjectTree;
-  } else if (object_z > 2.2 && (rand_num >= 0.25 || rand_num < 0.5)) {
+  } else if (object_z > 2.2 && (rand_num >= 0.6 && rand_num < 0.85)) {
     object_type_ = EObjectCarrot;
   } else {
-      object_type_ = EObjectNone;
+    object_type_ = EObjectNone;
   }
 
   // mesh_.shading.color = {0.6f, 0.85f, 0.5f}; // Make the grass more green :)
@@ -226,7 +185,7 @@ Terrain::Terrain(float view_radius, float chunk_width, float chunk_height)
     , chunk_width_(chunk_width)
     , chunk_height_(chunk_height)
     , shared_{vcl::image_load_png("assets/texture_grass.png"),
-              BuildCarrot(), BuildTree(),
+              BuildCarrot(), BuildTree(), BuildMushroom(),
               std::default_random_engine()} {}
 
 TerrainChunk* Terrain::GetChunk(const ChunkIndex& index) {
