@@ -18,6 +18,8 @@ struct TerrainSharedResources {
   const vcl::image_raw im_grass;
   vcl::mesh_drawable carrot;
   vcl::hierarchy_mesh_drawable tree;
+  vcl::mesh_drawable water;
+  double wave_phase;
   std::default_random_engine rnd;
 };
 
@@ -45,17 +47,14 @@ class TerrainChunk {
     }
     if (object_type_ == EObjectTree) {
       shared_->tree["trunk"].transform.translate = {object_x_, object_y_,
-                                             Z(object_x_, object_y_)};
+                                                    Z(object_x_, object_y_)};
       shared_->tree.update_local_to_global_coordinates();
       vcl::draw(shared_->tree, scene);
     }
   }
 
   template <class SCENE>
-  void RenderWater(const SCENE& scene) const {
-    vcl::draw(water_, scene);
-  }
-
+  void RenderWater(const SCENE& scene) const;
   float DistanceSqr(float x, float y) const;
 
   void InteractWith(Character& character);
@@ -72,11 +71,9 @@ class TerrainChunk {
   EObjectType object_type_;
 
   vcl::mesh_drawable mesh_;
-  vcl::mesh_drawable water_;
   TerrainSharedResources* shared_;
 
   void BuildMesh();
-  void BuildWater();
 };
 
 struct ChunkIndex {
@@ -89,6 +86,8 @@ struct ChunkIndex {
 
 class Terrain {
  public:
+  static const vcl::vec3 kWaveVector;
+
   Terrain(float view_radius, float chunk_width, float chunk_height);
 
   template <class SCENE>
@@ -149,18 +148,34 @@ class Terrain {
 
   void InteractWith(Character& character);
 
+  void UpdateAnimation(
+      const std::chrono::time_point<std::chrono::system_clock>& now);
+
  private:
-  //  const float view_radius_;
+  // const float view_radius_;
   const float view_radius_sqr_;
   const float chunk_width_;
   const float chunk_height_;
 
   TerrainSharedResources shared_;
 
+  Animation waves_animation_;
+
   std::unordered_map<ChunkIndex, std::unique_ptr<TerrainChunk>, ChunkIndex>
       chunks_{};
 
   ChunkIndex FindCurrentChunkIndex(float x, float y) const;
   TerrainChunk* GetChunk(const ChunkIndex& index);
+  vcl::mesh_drawable BuildWater();
 };
+
+template <class SCENE>
+void TerrainChunk::RenderWater(const SCENE& scene) const {
+  shared_->water.transform.translate =
+      Terrain::kWaveVector * shared_->wave_phase * 2 * M_PI;
+  shared_->water.transform.translate.x += x_;
+  shared_->water.transform.translate.y += y_;
+  vcl::draw(shared_->water, scene);
+}
+
 // #endif //INF443_TERRAIN_H

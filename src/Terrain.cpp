@@ -17,15 +17,16 @@ vcl::mesh_drawable BuildCarrot() {
   body.push_back(green_part);
   return vcl::mesh_drawable(body);
 }
-}
+} // namespace
 
 namespace {
 vcl::hierarchy_mesh_drawable BuildTree() {
   vcl::mesh trunk =
       vcl::mesh_primitive_cylinder(0.1f, {0, 0, 0.5f}, {0, 0, -1});
   vcl::mesh_drawable trunk_drawable(trunk);
-  trunk_drawable.texture = opengl_texture_to_gpu(vcl::image_load_png("assets/trunk.png"),
-                                                 GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
+  trunk_drawable.texture =
+      opengl_texture_to_gpu(vcl::image_load_png("assets/trunk.png"),
+                            GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
   trunk_drawable.shading.phong.specular = 0.0f;
 
   vcl::mesh bottom_layer =
@@ -38,8 +39,9 @@ vcl::hierarchy_mesh_drawable BuildTree() {
   bottom_layer.push_back(middle_layer);
   bottom_layer.push_back(top_layer);
   vcl::mesh_drawable green_part(bottom_layer);
-  green_part.texture = opengl_texture_to_gpu(vcl::image_load_png("assets/tree_texture.png"),
-                                             GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
+  green_part.texture =
+      opengl_texture_to_gpu(vcl::image_load_png("assets/tree_texture.png"),
+                            GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
   vcl::hierarchy_mesh_drawable hierarchy;
   hierarchy.add(trunk_drawable, "trunk");
   hierarchy.add(green_part, "green_part", "trunk");
@@ -62,19 +64,18 @@ TerrainChunk::TerrainChunk(float x, float y, float width, float height,
     , height_(height)
     , shared_(shared) {
   BuildMesh();
-  BuildWater();
 
   std::uniform_real_distribution<float> distr(0, 1);
-  object_x_         = x_ + width_ * (distr(shared_->rnd) * 0.8 + 0.1);
-  object_y_         = y_ + height_ * (distr(shared_->rnd) * 0.8 + 0.1);
-  float object_z    = Z(object_x_, object_y_);
+  object_x_      = x_ + width_ * (distr(shared_->rnd) * 0.8 + 0.1);
+  object_y_      = y_ + height_ * (distr(shared_->rnd) * 0.8 + 0.1);
+  float object_z = Z(object_x_, object_y_);
   float rand_num = distr(shared_->rnd);
   if (object_z > 2.2 && rand_num > 0.5) {
     object_type_ = EObjectTree;
   } else if (object_z > 2.2 && (rand_num >= 0.25 || rand_num < 0.5)) {
     object_type_ = EObjectCarrot;
   } else {
-      object_type_ = EObjectNone;
+    object_type_ = EObjectNone;
   }
 
   // mesh_.shading.color = {0.6f, 0.85f, 0.5f}; // Make the grass more green :)
@@ -181,25 +182,46 @@ void TerrainChunk::InteractWith(Character& character) {
     character.OnCarrotCollect();
   }
 }
-void TerrainChunk::BuildWater() {
+vcl::mesh_drawable Terrain::BuildWater() {
+  const int N = 100;
+
   vcl::mesh water;
-  water.position.resize(4);
-  water.color.resize(4);
+  water.position.resize(N * N);
+  water.color.resize(N * N);
 
-  water.position[0] = {x_, y_, 2.2};
-  water.position[1] = {x_ + width_, y_, 2.2};
-  water.position[2] = {x_ + width_, y_ + height_, 2.2};
-  water.position[3] = {x_, y_ + height_, 2.2};
+  for (int ku = 0; ku < N; ++ku) {
+    for (int kv = 0; kv < N; ++kv) {
+      float u = ku / (N - 1.0f);
+      float v = kv / (N - 1.0f);
 
-  water.color.fill({0, 0, 0.5});
+      float x = u * chunk_width_;
+      float y = v * chunk_height_;
+      float z = 2.2 + 0.005 * (1 + std::sin(2 * M_PI *
+                                            (u / Terrain::kWaveVector.x +
+                                             v / Terrain::kWaveVector.y)));
 
-  water.connectivity.push_back({0, 1, 2});
-  water.connectivity.push_back({0, 2, 3});
+      water.position[kv + N * ku] = {x, y, z};
+      water.color[kv + N * ku]    = {0, 0, 0.5};
+    }
+  }
+
+  for (int ku = 0; ku < N - 1; ++ku) {
+    for (int kv = 0; kv < N - 1; ++kv) {
+      const unsigned int idx = kv + N * ku; // current vertex offset
+
+      const vcl::uint3 triangle_1 = {idx, idx + 1 + N, idx + 1};
+      const vcl::uint3 triangle_2 = {idx, idx + N, idx + 1 + N};
+
+      water.connectivity.push_back(triangle_1);
+      water.connectivity.push_back(triangle_2);
+    }
+  }
 
   water.fill_empty_field();
 
-  water_               = vcl::mesh_drawable(water);
-  water_.shading.alpha = 0.5;
+  vcl::mesh_drawable water_drawable(water);
+  water_drawable.shading.alpha = 0.5;
+  return water_drawable;
 }
 
 size_t ChunkIndex::operator()(const ChunkIndex& index) const noexcept {
@@ -226,8 +248,16 @@ Terrain::Terrain(float view_radius, float chunk_width, float chunk_height)
     , chunk_width_(chunk_width)
     , chunk_height_(chunk_height)
     , shared_{vcl::image_load_png("assets/texture_grass.png"),
-              BuildCarrot(), BuildTree(),
-              std::default_random_engine()} {}
+              BuildCarrot(),
+              BuildTree(),
+              BuildWater(),
+              0,
+              std::default_random_engine()} {
+  waves_animation_.NewTimeline("waves")
+      .AddKeyPoint(0, 0, Timeline::EInterpolationModeLinear)
+      .AddKeyPoint(5, 1, Timeline::EInterpolationModeLinear)
+      .Reset();
+}
 
 TerrainChunk* Terrain::GetChunk(const ChunkIndex& index) {
   auto it = chunks_.find(index);
@@ -255,3 +285,10 @@ void Terrain::InteractWith(Character& character) {
   auto index = FindCurrentChunkIndex(x, y);
   GetChunk(index)->InteractWith(character);
 }
+void Terrain::UpdateAnimation(
+    const std::chrono::time_point<std::chrono::system_clock>& now) {
+  waves_animation_.Update(now);
+  shared_.wave_phase = waves_animation_["waves"].Value();
+}
+
+const vcl::vec3 Terrain::kWaveVector{0.25, 0.5, 0};

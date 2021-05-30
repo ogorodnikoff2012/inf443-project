@@ -85,6 +85,7 @@ void GameContext::Update() {
 
   character_.UpdateJumping(now);
 
+  terrain_.UpdateAnimation(now);
   terrain_.InteractWith(character_);
 
   auto& scene = Game::GetInstance()->GetScene();
