@@ -33,6 +33,8 @@ class GameContext : public SceneContext {
 
   void SwitchView();
 
+  Character& GetCharacter();
+
  private:
   vcl::camera_around_center
       camera_; // A camera looking at, and rotating around, a

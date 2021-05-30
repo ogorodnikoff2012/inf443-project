@@ -48,9 +48,18 @@ void GameContext::Render() {
   terrain_.Render(character_.Position().x, character_.Position().y, scene);
 }
 
-void GameContext::GoForward() { run_speed_ = 2; }
-void GameContext::GoBackward() { run_speed_ = -2; }
-void GameContext::StopGo() { run_speed_ = 0; }
+void GameContext::GoForward() {
+  run_speed_ = 2;
+  character_.StartJumping();
+}
+void GameContext::GoBackward() {
+  run_speed_ = -2;
+  character_.StartJumping();
+}
+void GameContext::StopGo() {
+  run_speed_ = 0;
+  character_.StopJumping();
+}
 
 void GameContext::TurnLeft() { turn_speed_ = 1; }
 
@@ -74,7 +83,7 @@ void GameContext::Update() {
   character_.Position().z = terrain_.GetPhysicalHeight(character_.Position().x,
                                                        character_.Position().y);
 
-  character_.UpdateJumping(dt, run_speed_ == 0);
+  character_.UpdateJumping(now);
 
   terrain_.InteractWith(character_);
 
@@ -82,3 +91,4 @@ void GameContext::Update() {
   character_.UpdateCamera(scene.camera, terrain_);
 }
 void GameContext::SwitchView() { character_.SwitchView(); }
+Character& GameContext::GetCharacter() { return character_; }

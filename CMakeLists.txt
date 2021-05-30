@@ -21,7 +21,7 @@ set(SRC
         src/GameContext.h
         src/Character.cpp
         src/Character.h
-        src/Terrain.cpp src/Terrain.h src/KroshLoader.cpp src/KroshLoader.h)
+        src/Terrain.cpp src/Terrain.h src/KroshLoader.cpp src/KroshLoader.h src/Animation.cpp src/Animation.h src/Timeline.cpp src/Timeline.h)
 
 foreach (executable main main_from_example)
     add_executable(${executable} src/${executable}.cpp ${SRC} ${src_files_vcl} ${src_files_third_party})
