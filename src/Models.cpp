@@ -20,9 +20,11 @@ vcl::hierarchy_mesh_drawable BuildTree() {
   vcl::mesh trunk =
       vcl::mesh_primitive_cylinder(0.1f, {0, 0, 0.5f}, {0, 0, -1});
   vcl::mesh_drawable trunk_drawable(trunk);
-  trunk_drawable.texture = opengl_texture_to_gpu(vcl::image_load_png("assets/trunk.png"),
-                                                 GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
+  trunk_drawable.texture =
+      opengl_texture_to_gpu(vcl::image_load_png("assets/trunk.png"),
+                            GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
   trunk_drawable.shading.phong.specular = 0.0f;
+  trunk_drawable.shading.color          = {0.4, 0.2, 0.05};
 
   vcl::mesh bottom_layer =
       vcl::mesh_primitive_cone(0.5f, 0.5f, {0, 0, 0.45f}, {0, 0, 1}, true);
@@ -34,8 +36,11 @@ vcl::hierarchy_mesh_drawable BuildTree() {
   bottom_layer.push_back(middle_layer);
   bottom_layer.push_back(top_layer);
   vcl::mesh_drawable green_part(bottom_layer);
-  green_part.texture = opengl_texture_to_gpu(vcl::image_load_png("assets/tree_texture.png"),
-                                             GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
+  green_part.texture =
+      opengl_texture_to_gpu(vcl::image_load_png("assets/tree_texture.png"),
+                            GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
+  green_part.shading.color = {0.5, 1, 0.5};
+
   vcl::hierarchy_mesh_drawable hierarchy;
   hierarchy.add(trunk_drawable, "trunk");
   hierarchy.add(green_part, "green_part", "trunk");
@@ -53,11 +58,11 @@ vcl::hierarchy_mesh_drawable BuildMushroom() {
   vcl::mesh top =
       vcl::mesh_primitive_cone(0.15, 0.1, {0, 0, 0.1f}, {0, 0, 1}, true);
   vcl::mesh_drawable top_drawable(top);
-  top_drawable.texture = opengl_texture_to_gpu(vcl::image_load_png("assets/mushroom_texture.png"),
-                                             GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
+  top_drawable.texture =
+      opengl_texture_to_gpu(vcl::image_load_png("assets/mushroom_texture.png"),
+                            GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
   vcl::hierarchy_mesh_drawable hierarchy;
   hierarchy.add(trunk_drawable, "trunk");
   hierarchy.add(top_drawable, "top", "trunk");
   return hierarchy;
 }
-
