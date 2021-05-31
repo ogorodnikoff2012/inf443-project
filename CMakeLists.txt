@@ -23,11 +23,9 @@ set(SRC
         src/Character.h
         src/Terrain.cpp src/Terrain.h src/KroshLoader.cpp src/KroshLoader.h src/Animation.cpp src/Animation.h src/Timeline.cpp src/Timeline.h src/Models.cpp src/Models.h)
 
-foreach (executable main main_from_example)
-    add_executable(${executable} src/${executable}.cpp ${SRC} ${src_files_vcl} ${src_files_third_party})
+add_executable(game src/main.cpp ${SRC} ${src_files_vcl} ${src_files_third_party})
 
-    target_link_libraries(${executable} ${GLFW_LIBRARIES})
-    if (UNIX)
-        target_link_libraries(${executable} dl) #dlopen is required by Glad on Unix
-    endif ()
-endforeach ()
+target_link_libraries(game ${GLFW_LIBRARIES})
+if (UNIX)
+    target_link_libraries(game dl) #dlopen is required by Glad on Unix
+endif ()
